@@ -1,3 +1,4 @@
+import { FiPhone } from "react-icons/fi"
 import { Container, Flex, Image, Input, Text } from "@chakra-ui/react"
 import {
   createFileRoute,
@@ -91,7 +92,7 @@ function SignUp() {
         </Field>
 
         <Field invalid={!!errors.phone_number} errorText={errors.phone_number?.message}>
-          <InputGroup w="100%">
+          <InputGroup w="100%" startElement={<FiPhone />}>
             <Input
               {...register("phone_number", {
                 required: "Phone Number is required",
