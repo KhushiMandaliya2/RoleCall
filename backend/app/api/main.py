@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.job_postings import router as job_postings_router
+from app.api.routes.job_postings import router as job_postings_router
 
 
 from app.api.routes import items, login, private, users, utils
@@ -10,8 +10,7 @@ api_router.include_router(login.router)
 api_router.include_router(users.router)
 api_router.include_router(utils.router)
 api_router.include_router(items.router)
-api_router.include_router(job_postings_router, prefix="/job-postings", tags=["job_postings"])
-
+api_router.include_router(job_postings_router)
 
 
 if settings.ENVIRONMENT == "local":

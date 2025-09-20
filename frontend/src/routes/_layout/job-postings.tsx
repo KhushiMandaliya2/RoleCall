@@ -10,14 +10,14 @@ function JobPostingsPage() {
 
   // Fetch job postings from backend
   useEffect(() => {
-    fetch("/api/job-postings")
+    fetch("http://localhost:8000/api/v1/job_postings/")
       .then(res => res.json())
       .then(data => setJobPostings(data))
   }, [])
 
   // Add new job posting
   const handleAdd = async () => {
-    await fetch("/api/job-postings", {
+    await fetch("http://localhost:8000/api/v1/job_postings/", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title, description }),
@@ -25,7 +25,7 @@ function JobPostingsPage() {
     setTitle("")
     setDescription("")
     // Refresh job postings
-    fetch("/api/job-postings")
+    fetch("http://localhost:8000/api/v1/job_postings/")
       .then(res => res.json())
       .then(data => setJobPostings(data))
   }
