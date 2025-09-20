@@ -81,6 +81,7 @@ export type UserRegister = {
     email: string;
     password: string;
     full_name?: (string | null);
+    phone_number?: string;
 };
 
 export type UsersPublic = {

@@ -46,6 +46,7 @@ function SignUp() {
       full_name: "",
       password: "",
       confirm_password: "",
+      phone_number: "",
     },
   })
 
@@ -89,6 +90,20 @@ function SignUp() {
           </InputGroup>
         </Field>
 
+        <Field invalid={!!errors.phone_number} errorText={errors.phone_number?.message}>
+          <InputGroup w="100%">
+            <Input
+              {...register("phone_number", {
+                required: "Phone Number is required",
+                minLength: { value: 7, message: "Phone number too short" },
+                maxLength: { value: 25, message: "Phone number too long" },
+              })}
+              placeholder="Phone Number"
+              type="tel"
+            />
+          </InputGroup>
+        </Field>
+        
         <Field invalid={!!errors.email} errorText={errors.email?.message}>
           <InputGroup w="100%" startElement={<FiUser />}>
             <Input
