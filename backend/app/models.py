@@ -120,3 +120,9 @@ class JobPosting(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     title: str
     description: str
+    
+class UserJob(SQLModel, table=True):
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    user_id: uuid.UUID = Field(foreign_key="user.id", nullable=False)
+    job_posting_id: uuid.UUID = Field(foreign_key="jobposting.id", nullable=False)  # This should work now
+    status: str = Field(default="applied")

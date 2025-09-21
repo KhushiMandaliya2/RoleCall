@@ -17,6 +17,8 @@ interface Job {
   id: string
   title: string
   description: string
+  has_applied: boolean
+  user_id: string | null
 }
 
 function UserJobsPage() {
@@ -48,6 +50,14 @@ function UserJobsPage() {
       console.log("Jobs data received:", data)
       
       setJobs(data)
+      
+      // Set applied jobs based on the has_applied field from backend
+      const appliedJobIds = data
+        .filter((job: Job) => job.has_applied)
+        .map((job: Job) => job.id)
+      
+      setAppliedJobs(new Set(appliedJobIds))
+      
     } catch (error) {
       console.error("Error fetching jobs:", error)
       setError(`Failed to load jobs: ${error instanceof Error ? error.message : 'Unknown error'}`)
@@ -66,7 +76,8 @@ function UserJobsPage() {
       })
       
       if (!response.ok) {
-        throw new Error(`Failed to apply: ${response.status}`)
+        const errorData = await response.json()
+        throw new Error(errorData.detail || `Failed to apply: ${response.status}`)
       }
       
       const result = await response.json()
@@ -76,9 +87,12 @@ function UserJobsPage() {
       
       alert(`Successfully applied to ${jobTitle}!`)
       
+      // Refresh jobs to get updated application status
+      fetchJobs()
+      
     } catch (error) {
       console.error("Error applying to job:", error)
-      alert("Failed to submit application. Please try again.")
+      alert(error instanceof Error ? error.message : "Failed to submit application. Please try again.")
     }
   }
 
@@ -123,30 +137,6 @@ function UserJobsPage() {
     )
   }
 
-  if (jobs.length === 0) {
-    return (
-      <Container maxW="6xl" py={8}>
-        <Stack direction="column" gap={6}>
-          <Heading size="lg">Available Jobs</Heading>
-          <Alert.Root status="info">
-            <Alert.Indicator>
-              <FiInfo />
-            </Alert.Indicator>
-            <Alert.Content>
-              <Alert.Title>No Jobs Available</Alert.Title>
-              <Alert.Description>
-                There are currently no job openings. Please check back later!
-              </Alert.Description>
-            </Alert.Content>
-          </Alert.Root>
-          <Text fontSize="sm" color="gray.600">
-            Tip: Create some job postings in the Job Postings page first.
-          </Text>
-        </Stack>
-      </Container>
-    )
-  }
-
   return (
     <Container maxW="6xl" py={8}>
       <Stack direction="column" gap={6}>
@@ -160,48 +150,67 @@ function UserJobsPage() {
           </Badge>
         </Stack>
 
-        <Stack direction="column" gap={4}>
-          {jobs.map((job) => (
-            <Card.Root key={job.id} variant="outline">
-              <Card.Header>
-                <Stack direction="row" justify="space-between" align="start">
-                  <Stack direction="column" gap={1}>
-                    <Heading size="md" color="blue.600">
-                      {job.title}
-                    </Heading>
-                    <Text fontSize="sm" color="gray.600">
-                      Job ID: {job.id}
-                    </Text>
+        {jobs.length === 0 ? (
+          <Alert.Root status="info">
+            <Alert.Indicator>
+              <FiInfo />
+            </Alert.Indicator>
+            <Alert.Content>
+              <Alert.Title>No Jobs Available</Alert.Title>
+              <Alert.Description>
+                There are currently no job openings. Please check back later!
+              </Alert.Description>
+            </Alert.Content>
+          </Alert.Root>
+        ) : (
+          <Stack direction="column" gap={4}>
+            {jobs.map((job) => (
+              <Card.Root key={job.id} variant="outline">
+                <Card.Header>
+                  <Stack direction="row" justify="space-between" align="start">
+                    <Stack direction="column" gap={1}>
+                      <Heading size="md" color="blue.600">
+                        {job.title}
+                      </Heading>
+                      <Text fontSize="sm" color="gray.600">
+                        Job ID: {job.id}
+                      </Text>
+                      {job.has_applied && (
+                        <Badge colorScheme="green" size="sm">
+                          Already Applied
+                        </Badge>
+                      )}
+                    </Stack>
+                    <Stack direction="row" gap={2}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleView(job.id)}
+                      >
+                        <FiEye style={{ marginRight: "8px" }} />
+                        View Details
+                      </Button>
+                      <Button
+                        size="sm"
+                        colorScheme={appliedJobs.has(job.id) ? "green" : "blue"}
+                        disabled={appliedJobs.has(job.id)}
+                        onClick={() => handleApply(job.id, job.title)}
+                      >
+                        {appliedJobs.has(job.id) ? "Applied ✓" : "Apply Now"}
+                      </Button>
+                    </Stack>
                   </Stack>
-                  <Stack direction="row" gap={2}>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleView(job.id)}
-                    >
-                      <FiEye style={{ marginRight: "8px" }} />
-                      View Details
-                    </Button>
-                    <Button
-                      size="sm"
-                      colorScheme={appliedJobs.has(job.id) ? "green" : "blue"}
-                      disabled={appliedJobs.has(job.id)}
-                      onClick={() => handleApply(job.id, job.title)}
-                    >
-                      {appliedJobs.has(job.id) ? "Applied ✓" : "Apply Now"}
-                    </Button>
-                  </Stack>
-                </Stack>
-              </Card.Header>
-              
-              <Card.Body>
-                <Text color="gray.700">
-                  {job.description}
-                </Text>
-              </Card.Body>
-            </Card.Root>
-          ))}
-        </Stack>
+                </Card.Header>
+                
+                <Card.Body>
+                  <Text color="gray.700">
+                    {job.description}
+                  </Text>
+                </Card.Body>
+              </Card.Root>
+            ))}
+          </Stack>
+        )}
       </Stack>
     </Container>
   )

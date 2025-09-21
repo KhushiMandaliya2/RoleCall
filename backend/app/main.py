@@ -3,8 +3,7 @@ from fastapi import FastAPI
 from fastapi.routing import APIRoute
 from starlette.middleware.cors import CORSMiddleware
 from app.api.main import api_router
-
-from app.api.main import api_router
+from sqlmodel import SQLModel 
 from app.core.config import settings
 
 
@@ -15,11 +14,19 @@ def custom_generate_unique_id(route: APIRoute) -> str:
 if settings.SENTRY_DSN and settings.ENVIRONMENT != "local":
     sentry_sdk.init(dsn=str(settings.SENTRY_DSN), enable_tracing=True)
 
+def create_db_and_tables():
+    from app.db import engine
+    SQLModel.metadata.create_all(engine)
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     generate_unique_id_function=custom_generate_unique_id,
 )
+
+@app.on_event("startup") 
+def on_startup():
+    create_db_and_tables()
 
 # Set all CORS enabled origins
 if settings.all_cors_origins:
