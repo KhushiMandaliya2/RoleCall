@@ -12,6 +12,7 @@ import {
 } from "@chakra-ui/react"
 import { FiEye, FiBriefcase, FiInfo, FiAlertCircle } from "react-icons/fi"
 import { useState, useEffect } from "react"
+import useAuth from "@/hooks/useAuth"
 
 interface Job {
   id: string
@@ -22,41 +23,35 @@ interface Job {
 }
 
 function UserJobsPage() {
+  const { user: currentUser } = useAuth()
   const [jobs, setJobs] = useState<Job[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [appliedJobs, setAppliedJobs] = useState<Set<string>>(new Set())
 
   useEffect(() => {
-    fetchJobs()
-  }, [])
+    if (currentUser?.id) {
+      fetchJobs()
+    } else if (currentUser === null) {
+      // User is not logged in
+      setError("Please log in to view available jobs")
+      setIsLoading(false)
+    }
+  }, [currentUser])
 
   const fetchJobs = async () => {
     try {
       setIsLoading(true)
       setError(null)
       
-      console.log("Fetching jobs from:", "http://localhost:8000/api/v1/jobs/")
-      
-      const response = await fetch("http://localhost:8000/api/v1/jobs/")
-      
-      console.log("Response status:", response.status)
+      // Pass user_id as query parameter
+      const response = await fetch(`http://localhost:8000/api/v1/jobs/?user_id=${currentUser.id}`)
       
       if (!response.ok) {
         throw new Error(`Failed to fetch jobs: ${response.status} ${response.statusText}`)
       }
       
       const data = await response.json()
-      console.log("Jobs data received:", data)
-      
       setJobs(data)
-      
-      // Set applied jobs based on the has_applied field from backend
-      const appliedJobIds = data
-        .filter((job: Job) => job.has_applied)
-        .map((job: Job) => job.id)
-      
-      setAppliedJobs(new Set(appliedJobIds))
       
     } catch (error) {
       console.error("Error fetching jobs:", error)
@@ -67,12 +62,17 @@ function UserJobsPage() {
   }
 
   const handleApply = async (jobId: string, jobTitle: string) => {
+    if (!currentUser?.id) {
+    alert("Please log in to apply for jobs")
+    return
+  }
     try {
-      console.log("Applying to job:", jobId)
-      
-      const response = await fetch(`http://localhost:8000/api/v1/jobs/${jobId}/apply`, {
+      // Pass user_id as query parameter
+      const response = await fetch(`http://localhost:8000/api/v1/jobs/${jobId}/apply?user_id=${currentUser.id}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
       })
       
       if (!response.ok) {
@@ -81,14 +81,17 @@ function UserJobsPage() {
       }
       
       const result = await response.json()
-      console.log("Application result:", result)
       
-      setAppliedJobs(prev => new Set([...prev, jobId]))
+      // Update the specific job's has_applied status
+      setJobs(prevJobs => 
+        prevJobs.map(job => 
+          job.id === jobId 
+            ? { ...job, has_applied: true }
+            : job
+        )
+      )
       
       alert(`Successfully applied to ${jobTitle}!`)
-      
-      // Refresh jobs to get updated application status
-      fetchJobs()
       
     } catch (error) {
       console.error("Error applying to job:", error)
@@ -133,6 +136,25 @@ function UserJobsPage() {
             Make sure your backend is running on http://localhost:8000
           </Text>
         </Stack>
+      </Container>
+    )
+  }
+
+  // Add this check before other conditions
+  if (!currentUser && !isLoading) {
+    return (
+      <Container maxW="6xl" py={8}>
+        <Alert.Root status="warning">
+          <Alert.Indicator>
+            <FiAlertCircle />
+          </Alert.Indicator>
+          <Alert.Content>
+            <Alert.Title>Login Required</Alert.Title>
+            <Alert.Description>
+              Please log in to view and apply for available jobs.
+            </Alert.Description>
+          </Alert.Content>
+        </Alert.Root>
       </Container>
     )
   }
@@ -192,11 +214,11 @@ function UserJobsPage() {
                       </Button>
                       <Button
                         size="sm"
-                        colorScheme={appliedJobs.has(job.id) ? "green" : "blue"}
-                        disabled={appliedJobs.has(job.id)}
+                        colorScheme={job.has_applied ? "green" : "blue"}
+                        disabled={job.has_applied}
                         onClick={() => handleApply(job.id, job.title)}
                       >
-                        {appliedJobs.has(job.id) ? "Applied ✓" : "Apply Now"}
+                        {job.has_applied ? "Applied ✓" : "Apply Now"}
                       </Button>
                     </Stack>
                   </Stack>
